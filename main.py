@@ -1,7 +1,7 @@
 import numpy as np
 import csv
 import math
-from bm import RBM
+#from bm import RBM
 import matplotlib.pyplot as plt
 from rbm import SRBM
 import os
@@ -25,7 +25,10 @@ def bin_2_score(bin):
                 if bin[3] == 1:
                     r = 4
                 else:
-                    r = 5
+                    if bin[4] ==1:
+                        r = 5
+                    else:
+                        r = 0
     return r
 
 
@@ -122,9 +125,13 @@ print RSE
 
 #train for all
 print N
-brn = SRBM(M, 5, 100, 0.05)
-#brn.train_bias(data_movie,data_bscore)test_user(data_user,data_movie,data_bscore, M, 2,brn)
-#print 'biases check'
+brn = SRBM(M, 5, 100, 0.2)
+
+
+#brn.train_bias(data_movie,data_bscore)
+print 'biases check'
+V1 = get_user(data_user, data_movie, data_bscore, M, 1)
+
 for i in range(1, int(N)):
     print i/N*100,'%done'
     V = get_user(data_user, data_movie, data_bscore, M, i)
@@ -140,6 +147,7 @@ RSE = 0
 for i in range(0,100):
     print i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
+    #brn.train(V,1)
     bscore = brn.predict(V, test_data_movie[i])
     pscore = bin_2_score(bscore)
     dscore = bin_2_score(test_data_bscore[i][:])
