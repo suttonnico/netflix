@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from rbm import SRBM
 import os
+import scipy.io as sio
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -73,77 +74,66 @@ def test_user(data_user,data_movie,data_bscore,M,user,brn):
     print 'RES usuario',user,'============== ',RSE
 
 
-i = 0
-data_user = np.zeros(80000)
-data_movie = np.zeros(80000)
-data_score = np.zeros(80000)
-data_time = np.zeros(80000)
-data = np.zeros([80000, 3])
-with open('data_set.csv', 'rb') as csvfile:
-    data_set = csv.reader(csvfile, delimiter=',')
-    for row in data_set:
-        data_user[i] = row[0]
-        data_movie[i] = row[1]
-        data_score[i] = row[2]
-        data_time[i] = row[3]
-        data[i, 0] = row[0]
-        data[i, 1] = row[1]
-        data[i, 2] = row[3]
-        i += 1
+def load_data():
+    data_movie = sio.loadmat('data_movie.mat')
+    data_movie = data_movie['data_movie']
+    data_movie = data_movie[0]
 
+    data_user = sio.loadmat('data_user.mat')
+    data_user = data_user['data_user']
+    data_user = data_user[0]
 
-#paso los scores a una matriz de 5 columnas
-data_bscore = np.zeros([80000, 5])
+    data_bscore = sio.loadmat('data_bscore.mat')
+    data_bscore = data_bscore['data_bscore']
+    #data_bscore = data_bscore[0]
 
-for i in range(0, 80000):
-    if data_score[i] == 1:
-        data_bscore[i, :] = [1, 0, 0, 0, 0]
-    else:
-        if data_score[i] == 2:
-            data_bscore[i, :] = [0, 1, 0, 0, 0]
-        else:
-            if data_score[i] == 3:
-                data_bscore[i, :] = [0, 0, 1, 0, 0]
-            else:
-                if data_score[i] == 4:
-                    data_bscore[i, :] = [0, 0, 0, 1, 0]
-                else:
-                    data_bscore[i, :] = [0, 0, 0, 0, 1]
+    test_data_bscore = sio.loadmat('test_data_bscore.mat')
+    test_data_bscore = test_data_bscore['test_data_bscore']
+    #test_data_bscore = test_data_bscore[0]
 
+    test_data_user = sio.loadmat('test_data_user.mat')
+    test_data_user = test_data_user['test_data_user']
+    test_data_user = test_data_user[0]
+
+    test_data_movie = sio.loadmat('test_data_movie.mat')
+    test_data_movie = test_data_movie['test_data_movie']
+    test_data_movie = test_data_movie[0]
+    return data_movie, data_user, data_bscore, test_data_bscore, test_data_user, test_data_movie
+
+[data_movie, data_user, data_bscore, test_data_bscore, test_data_user, test_data_movie] = load_data()
 #Cantidad de peliculas
 M = np.max(data_movie)      #hay 32 peliculas que nadie califico pero no creo que moleste
 
 #cantidad de usuarios
 N = np.max(data_user)
 V = get_user(data_user, data_movie, data_bscore, M, 1)
-test_cases = 200
-[data_bscore, test_data_bscore, test_data_user, test_data_movie] = generate_test_data(data_user, data_movie, data_bscore, M, test_cases)
+test_cases = 100
 RSE= 0
 for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((3 - dscore), 2)) / test_cases
 
-print RSE
+print 'RSE for guessing 3 on all movies', RSE
 
 #train for all
-print N
+print 'Number of users', N
 
 
-brn = SRBM(M, 5, 20, 0.01)
+brn = SRBM(M, 5, 200, 0.1)
 
 
 brn.train_bias(data_movie,data_bscore)
 print 'biases check'
 V1 = get_user(data_user, data_movie, data_bscore, M, 1)
-#a = time.time()
-#brn.train(V1, 1)
-#b = time.time()
-#time_train = b-a
-print brn.predict_user(V1, M)
-print brn.predict(V1,1)
+a = time.time()
+brn.train(V1, 1)
+b = time.time()
+time_train = b-a
+print 'RSE for first user', brn.predict_user(V1, M)
+print 'Prediction of movie 1 for user 1', brn.predict(V1,1)
 RSE = 0
 for i in range(0,test_cases):
-    print i, '%done'
+    print 'Guessing average', i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
     # brn.train(V,1)
     pscore = brn.predict(V, test_data_movie[i])
@@ -151,7 +141,7 @@ for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((pscore - dscore), 2)) / test_cases
 
-print RSE
+print 'RSE of guessing average for movie', RSE
 
 
 for i in range(2, int(N)):
@@ -167,7 +157,7 @@ for i in range(2, int(N)):
 #RSE
 RSE = 0
 for i in range(0,test_cases):
-    print i, '%done'
+    print 'Guessing', i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
     # brn.train(V,1)
     pscore = brn.predict(V, test_data_movie[i])
@@ -175,5 +165,5 @@ for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((pscore - dscore), 2)) / test_cases
 
-print RSE
+print 'Final RSE ===',RSE
 

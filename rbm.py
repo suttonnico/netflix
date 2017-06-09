@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.io as sio
 #from timeit import default_number as timer
 #from numbapro import vectorize
 
@@ -68,7 +69,10 @@ class SRBM:
                 V[i][k] = self.get_one_vis_p(i,k,h)
         return V
 
+    def save_weights(self):
+        sio.savemat('w.mat',{'W': self.W})
 
+    #def load_weights(self):
     def get_one_vis_p(self, i, k, h):
         num = np.exp(self.hidbiases[i][k] + np.dot(h, self.W[i][k][:]))
         den = 0
@@ -87,7 +91,7 @@ class SRBM:
             if cant > 0:
                 self.hidbiases[j][:] /= cant * 5
             for i in range(0,5):
-                self.hidbiases[j][i] = np.log(self.hidbiases[j][i]/(1-self.hidbiases[j][i]))
+                self.hidbiases[j][i] = np.log((self.hidbiases[j][i]+0.00001)/(1-self.hidbiases[j][i]))
 
 
     def train(self, data, epochs):
