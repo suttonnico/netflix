@@ -1,7 +1,8 @@
 import numpy as np
 import csv
 import math
-from bm import RBM
+import time
+#from bm import RBM
 import matplotlib.pyplot as plt
 from rbm import SRBM
 import os
@@ -25,7 +26,10 @@ def bin_2_score(bin):
                 if bin[3] == 1:
                     r = 4
                 else:
-                    r = 5
+                    if bin[4] ==1:
+                        r = 5
+                    else:
+                        r = 0
     return r
 
 
@@ -112,38 +116,64 @@ M = np.max(data_movie)      #hay 32 peliculas que nadie califico pero no creo qu
 #cantidad de usuarios
 N = np.max(data_user)
 V = get_user(data_user, data_movie, data_bscore, M, 1)
-[data_bscore, test_data_bscore, test_data_user, test_data_movie] = generate_test_data(data_user, data_movie, data_bscore, M, 100)
+test_cases = 200
+[data_bscore, test_data_bscore, test_data_user, test_data_movie] = generate_test_data(data_user, data_movie, data_bscore, M, test_cases)
 RSE= 0
-for i in range(0,100):
+for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
-    RSE += (math.pow((3 - dscore), 2)) / 100
+    RSE += (math.pow((3 - dscore), 2)) / test_cases
 
 print RSE
 
 #train for all
 print N
-brn = SRBM(M, 5, 100, 0.05)
-#brn.train_bias(data_movie,data_bscore)test_user(data_user,data_movie,data_bscore, M, 2,brn)
-#print 'biases check'
-for i in range(1, int(N)):
-    print i/N*100,'%done'
+
+
+brn = SRBM(M, 5, 20, 0.01)
+
+
+brn.train_bias(data_movie,data_bscore)
+print 'biases check'
+V1 = get_user(data_user, data_movie, data_bscore, M, 1)
+#a = time.time()
+#brn.train(V1, 1)
+#b = time.time()
+#time_train = b-a
+print brn.predict_user(V1, M)
+print brn.predict(V1,1)
+RSE = 0
+for i in range(0,test_cases):
+    print i, '%done'
+    V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
+    # brn.train(V,1)
+    pscore = brn.predict(V, test_data_movie[i])
+    #pscore = bin_2_score(bscore)
+    dscore = bin_2_score(test_data_bscore[i][:])
+    RSE += (math.pow((pscore - dscore), 2)) / test_cases
+
+print RSE
+
+
+for i in range(2, int(N)):
+    print '%.1f' % (i/N*100),'% done', 'Expexted time = ',np.floor(time_train*(N-i)/60),'mins ','%.0f' % ((time_train*(N-i))-np.floor(time_train*(N-i)/60)*60),'secs'
     V = get_user(data_user, data_movie, data_bscore, M, i)
     brn.train(V, 1)
 
 
-#brn.train(V, 1000)
-#print brn.predict(V,1)
-#exit(123)
+# brn.train(V, 1000)
+# print brn.predict(V,1)
+# exit(123)
 
 #RSE
 RSE = 0
-for i in range(0,100):
+for i in range(0,test_cases):
     print i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
-    bscore = brn.predict(V, test_data_movie[i])
-    pscore = bin_2_score(bscore)
+    # brn.train(V,1)
+    pscore = brn.predict(V, test_data_movie[i])
+    #pscore = bin_2_score(bscore)
     dscore = bin_2_score(test_data_bscore[i][:])
-    RSE += (math.pow((pscore - dscore), 2)) / 100
+    RSE += (math.pow((pscore - dscore), 2)) / test_cases
 
 print RSE
 
