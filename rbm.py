@@ -84,10 +84,10 @@ class SRBM:
                 if data_movie[i] == j:
                     cant += 1
                     self.hidbiases[j][:] += data_bscore[i][:]
-            self.hidbiases[j][:] /= cant
+            if cant > 0:
+                self.hidbiases[j][:] /= cant * 5
             for i in range(0,5):
                 self.hidbiases[j][i] = np.log(self.hidbiases[j][i]/(1-self.hidbiases[j][i]))
-            #print self.hidbiases[j][:]
 
 
     def train(self, data, epochs):
@@ -96,21 +96,25 @@ class SRBM:
             pos_hid_p = self.get_hid_p(data)
             pos_hid_states = pos_hid_p > np.random.rand(self.F)
             pos_asso = np.zeros([self.m, self.K, self.F])
-            for i in range(0, self.m):
-                if np.any(data[i][:]) == 1:
-                    for j in range(0,self.F):
-                        for k in range(0, self.K):
-                            pos_asso[i][k][j] = data[i][k]*pos_hid_p[j]
+            #for i in range(0, self.m):
+            #    if np.any(data[i][:]) == 1:
+            #        for j in range(0,self.F):
+            #            for k in range(0, self.K):
+            #                pos_asso[i][k][j] = data[i][k]*pos_hid_p[j]
             neg_asso = np.zeros([self.m, self.K, self.F])
             neg_vis_p = self.get_vis_p(pos_hid_states)
             neg_hid_p = self.get_hid_p(neg_vis_p)
+            #neg_hid_p = pos_hid_p
             for i in range(0,self.m):
                 if np.any(data[i][:]) == 1:
                     for j in range(0,self.F):
                         for k in range(0, self.K):
+                            pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
                             neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
+            #self.hidbiases += self.learning_rate*(data - neg_vis_p)
+            #self.visbiases += self.learning_rate*(pos_hid_p - neg_hid_p)
             self.W += self.learning_rate*(pos_asso-neg_asso)
-
+#cambios linea 108  115 116
 
     def predict(self, V, q):
         pos_hid_p = self.get_hid_p(V)
@@ -119,7 +123,7 @@ class SRBM:
         movie = neg_vis_p[int(q)][:]
         th = np.max(movie)
         score = movie >= th
-        return score
+        return np.dot(movie,[1,2,3,4,5])
 
     def predict_user(self, V, M):
         pos_hid_p = self.get_hid_p(V)
