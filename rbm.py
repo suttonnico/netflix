@@ -51,9 +51,12 @@ class SRBM:
 
         self.W = np.zeros([self.m, self.K, num_hidden])
         self.hidbiases = np.zeros([self.m, self.K])
-        self.visbiases = np.zeros(num_hidden)
+        self.visbiases = np.zeros(num_hidden)-4
 
         self.W = 0.02 * np.random.rand(self.m, self.K, num_hidden ) - 0.01
+        W = self.W
+        sio.savemat('W.mat', {'W': W})
+
 
 
     def get_hid_p(self,V):
@@ -91,7 +94,7 @@ class SRBM:
             if cant > 0:
                 self.hidbiases[j][:] /= cant * 5
             for i in range(0,5):
-                self.hidbiases[j][i] = np.log((self.hidbiases[j][i]+0.00001)/(1-self.hidbiases[j][i]))
+                self.hidbiases[j][i] = np.log((self.hidbiases[j][i]+0.00001)/(1.00001-self.hidbiases[j][i]))
 
 
     def train(self, data, epochs):
@@ -107,29 +110,43 @@ class SRBM:
             #                pos_asso[i][k][j] = data[i][k]*pos_hid_p[j]
             neg_asso = np.zeros([self.m, self.K, self.F])
             neg_vis_p = self.get_vis_p(pos_hid_states)
+            neg_vis_states = neg_vis_p > np.random.rand(self.m, self.K)
             neg_hid_p = self.get_hid_p(neg_vis_p)
+            neg_hid_states = neg_hid_p > np.random.rand(self.F)
             #neg_hid_p = pos_hid_p
             for i in range(0,self.m):
                 if np.any(data[i][:]) == 1:
                     for j in range(0,self.F):
                         for k in range(0, self.K):
-                            pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
-                            neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
-            #self.hidbiases += self.learning_rate*(data - neg_vis_p)
-            #self.visbiases += self.learning_rate*(pos_hid_p - neg_hid_p)
+                            #pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
+                            #neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
+                            pos_asso[i][k][j] = data[i][k] * pos_hid_states[j]
+                            neg_asso[i][k][j] = neg_vis_states[i][k]*neg_hid_states[j]
+            self.hidbiases += 0.1*self.learning_rate*(data - neg_vis_states)
+            self.visbiases += 0.1*self.learning_rate*(pos_hid_states - neg_hid_states)
             self.W += self.learning_rate*(pos_asso-neg_asso)
+            W = self.W
+            sio.savemat('W.mat', {'W': W})
 #cambios linea 108  115 116
 
-    def predict(self, V, q):
+
+    def load_w(self):
+        W = sio.loadmat('W.mat')
+        self.W = W
+
+    def predict(self, V, q, M):
+        #self.hidbiases += self.user_avg_bias(V, M)
         pos_hid_p = self.get_hid_p(V)
         pos_hid_states = pos_hid_p > np.random.rand(self.F)
         neg_vis_p = self.get_vis_p(pos_hid_states)
         movie = neg_vis_p[int(q)][:]
         th = np.max(movie)
         score = movie >= th
+        #self.hidbiases -= self.user_avg_bias(V, M)
         return np.dot(movie,[1,2,3,4,5])
 
     def predict_user(self, V, M):
+        self.hidbiases += self.user_avg_bias(V, M)
         pos_hid_p = self.get_hid_p(V)
         pos_hid_states = pos_hid_p > np.random.rand(self.F)
         neg_vis_p = self.get_vis_p(pos_hid_states)
@@ -146,7 +163,20 @@ class SRBM:
                 count +=1
                 RSE += (sd - bin_2_score(score[i][:]))**2
         RSEN = RSE / count
+
         return RSE
 
     def _logistic(self, x):
        return 1.0 / (1 + np.exp(-x))
+
+    def user_avg_bias(self, V, M):
+        total = np.zeros(5)
+        cant = 0
+        for i in range(0,int(M)):
+            if np.any(V[i][:]) == 1:
+                total += V[i][:]
+                cant += 1
+        total /= cant
+        for i in range(0, 5):
+            total[i] = np.log((total[i] + 0.00001) / (1.00001 - total[i]))
+        return total

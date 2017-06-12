@@ -119,51 +119,55 @@ print 'RSE for guessing 3 on all movies', RSE
 print 'Number of users', N
 
 
-brn = SRBM(M, 5, 200, 0.1)
+brnt = SRBM(M, 5, 50, 0.001)
 
 
-brn.train_bias(data_movie,data_bscore)
-print 'biases check'
+
 V1 = get_user(data_user, data_movie, data_bscore, M, 1)
 a = time.time()
-brn.train(V1, 1)
+brnt.train(V1, 1)
 b = time.time()
 time_train = b-a
-print 'RSE for first user', brn.predict_user(V1, M)
-print 'Prediction of movie 1 for user 1', brn.predict(V1,1)
+
+print 'RSE for first user', brnt.predict_user(V1, M)
+print 'Prediction of movie 1 for user 1', brnt.predict(V1,1,M)
+brn = SRBM(M, 5, 50, 0.0001)
+brn.train_bias(data_movie,data_bscore)
+print 'biases check'
 RSE = 0
 for i in range(0,test_cases):
     print 'Guessing average', i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
     # brn.train(V,1)
-    pscore = brn.predict(V, test_data_movie[i])
+    pscore = brn.predict(V, test_data_movie[i], M)
     #pscore = bin_2_score(bscore)
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((pscore - dscore), 2)) / test_cases
 
 print 'RSE of guessing average for movie', RSE
 
+PRSE = RSE
+ARSE = RSE
+iteration = 0
+while PRSE >= ARSE:
+    PRSE = ARSE
+    print 'Training'
+    for i in range(2, int(N)):
+        #print '%.1f' % (i/N*100),'% done', 'Expexted time = ',np.floor(time_train*(N-i)/60),'mins ','%.0f' % ((time_train*(N-i))-np.floor(time_train*(N-i)/60)*60),'secs'
+        V = get_user(data_user, data_movie, data_bscore, M, i)
+        brn.train(V, 1)
 
-for i in range(2, int(N)):
-    print '%.1f' % (i/N*100),'% done', 'Expexted time = ',np.floor(time_train*(N-i)/60),'mins ','%.0f' % ((time_train*(N-i))-np.floor(time_train*(N-i)/60)*60),'secs'
-    V = get_user(data_user, data_movie, data_bscore, M, i)
-    brn.train(V, 1)
+    RSE = 0
+    print 'Guessing'
+    for i in range(0,test_cases):
+        V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
+        # brn.train(V,1)
+        pscore = brn.predict(V, test_data_movie[i], M)
+        #pscore = bin_2_score(bscore)
+        dscore = bin_2_score(test_data_bscore[i][:])
+        RSE += (math.pow((pscore - dscore), 2)) / test_cases
 
-
-# brn.train(V, 1000)
-# print brn.predict(V,1)
-# exit(123)
-
-#RSE
-RSE = 0
-for i in range(0,test_cases):
-    print 'Guessing', i, '%done'
-    V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
-    # brn.train(V,1)
-    pscore = brn.predict(V, test_data_movie[i])
-    #pscore = bin_2_score(bscore)
-    dscore = bin_2_score(test_data_bscore[i][:])
-    RSE += (math.pow((pscore - dscore), 2)) / test_cases
-
-print 'Final RSE ===',RSE
-
+    print 'iteration',iteration,'Atual RSE ===',RSE
+    ARSE = RSE
+    iteration += 1
+brn.save_weights()
