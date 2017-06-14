@@ -74,7 +74,8 @@ class SRBM:
 
     def save_weights(self):
         sio.savemat('w.mat',{'W': self.W})
-
+        sio.savemat('hb.mat',{'hidbiases':self.hidbiases})
+        sio.savemat('vb.mat', {'visbiases': self.visbiases})
     #def load_weights(self):
     def get_one_vis_p(self, i, k, h):
         num = np.exp(self.hidbiases[i][k] + np.dot(h, self.W[i][k][:]))
@@ -118,21 +119,27 @@ class SRBM:
                 if np.any(data[i][:]) == 1:
                     for j in range(0,self.F):
                         for k in range(0, self.K):
-                            #pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
-                            #neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
-                            pos_asso[i][k][j] = data[i][k] * pos_hid_states[j]
-                            neg_asso[i][k][j] = neg_vis_states[i][k]*neg_hid_states[j]
-            self.hidbiases += 0.1*self.learning_rate*(data - neg_vis_states)
-            self.visbiases += 0.1*self.learning_rate*(pos_hid_states - neg_hid_states)
+                            pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
+                            neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
+                            #pos_asso[i][k][j] = data[i][k] * pos_hid_states[j]
+                            #neg_asso[i][k][j] = neg_vis_states[i][k]*neg_hid_states[j]
+            self.hidbiases += 0.1*self.learning_rate*(data - neg_vis_p)
+            self.visbiases += 0.1*self.learning_rate*(pos_hid_p - neg_hid_p)
             self.W += self.learning_rate*(pos_asso-neg_asso)
-            W = self.W
-            sio.savemat('W.mat', {'W': W})
 #cambios linea 108  115 116
 
 
     def load_w(self):
         W = sio.loadmat('W.mat')
+        W = W['W']
         self.W = W
+        hidbiases = sio.loadmat('hb.mat')
+        hidbiases = hidbiases['hidbiases']
+        self.hidbiases = hidbiases
+        visbiases = sio.loadmat('vb.mat')
+        visbiases = visbiases['visbiases']
+        visbiases = visbiases[0]
+        self.visbiases = visbiases
 
     def predict(self, V, q, M):
         #self.hidbiases += self.user_avg_bias(V, M)

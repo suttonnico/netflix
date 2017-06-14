@@ -53,7 +53,7 @@ for i in range(0, 80000):
                     data_bscore[i, :] = [0, 0, 0, 0, 1]
 
 
-test_cases = 100
+test_cases = 1000
 M = np.max(data_movie)
 [data_bscore, test_data_bscore, test_data_user, test_data_movie] = generate_test_data(data_user, data_movie, data_bscore, M, test_cases)
 

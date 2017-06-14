@@ -5,8 +5,8 @@ import time
 #from bm import RBM
 import matplotlib.pyplot as plt
 from rbm import SRBM
-import os
 import scipy.io as sio
+
 
 def softmax(x):
     e_x = np.exp(x - np.max(x))
@@ -78,7 +78,6 @@ def load_data():
     data_movie = sio.loadmat('data_movie.mat')
     data_movie = data_movie['data_movie']
     data_movie = data_movie[0]
-
     data_user = sio.loadmat('data_user.mat')
     data_user = data_user['data_user']
     data_user = data_user[0]
@@ -101,28 +100,29 @@ def load_data():
     return data_movie, data_user, data_bscore, test_data_bscore, test_data_user, test_data_movie
 
 [data_movie, data_user, data_bscore, test_data_bscore, test_data_user, test_data_movie] = load_data()
+
 #Cantidad de peliculas
 M = np.max(data_movie)      #hay 32 peliculas que nadie califico pero no creo que moleste
 
 #cantidad de usuarios
 N = np.max(data_user)
 V = get_user(data_user, data_movie, data_bscore, M, 1)
-test_cases = 100
+test_cases = 1000
 RSE= 0
 for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((3 - dscore), 2)) / test_cases
-
+RSE = np.sqrt(RSE)
 print 'RSE for guessing 3 on all movies', RSE
 
-#train for all
-print 'Number of users', N
 
+print 'Number of users', N
+print 'Number of movies', M
 
 brnt = SRBM(M, 5, 50, 0.001)
 
 
-
+#esto es solo para medir cuanto tarda en entrenar un usuario
 V1 = get_user(data_user, data_movie, data_bscore, M, 1)
 a = time.time()
 brnt.train(V1, 1)
@@ -131,28 +131,36 @@ time_train = b-a
 
 print 'RSE for first user', brnt.predict_user(V1, M)
 print 'Prediction of movie 1 for user 1', brnt.predict(V1,1,M)
-brn = SRBM(M, 5, 50, 0.0001)
+brn = SRBM(M, 5, 50, 0.1)
 brn.train_bias(data_movie,data_bscore)
 print 'biases check'
 RSE = 0
+print 'Guessing average'
 for i in range(0,test_cases):
-    print 'Guessing average', i, '%done'
+    #print 'Guessing average', i, '%done'
     V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
     # brn.train(V,1)
     pscore = brn.predict(V, test_data_movie[i], M)
     #pscore = bin_2_score(bscore)
     dscore = bin_2_score(test_data_bscore[i][:])
     RSE += (math.pow((pscore - dscore), 2)) / test_cases
-
+RSE = np.sqrt(RSE)
 print 'RSE of guessing average for movie', RSE
 
 PRSE = RSE
 ARSE = RSE
 iteration = 0
-while PRSE >= ARSE:
-    PRSE = ARSE
+while 1:
+    if  PRSE >=\
+            ARSE:
+        brn.save_weights()
+        PRSE = ARSE
+    else:
+        brn.load_w()
+        brn.learning_rate /= 10
+        print brn.learning_rate
     print 'Training'
-    for i in range(2, int(N)):
+    for i in range(1, int(N)):
         #print '%.1f' % (i/N*100),'% done', 'Expexted time = ',np.floor(time_train*(N-i)/60),'mins ','%.0f' % ((time_train*(N-i))-np.floor(time_train*(N-i)/60)*60),'secs'
         V = get_user(data_user, data_movie, data_bscore, M, i)
         brn.train(V, 1)
@@ -160,14 +168,15 @@ while PRSE >= ARSE:
     RSE = 0
     print 'Guessing'
     for i in range(0,test_cases):
+        #print i
         V = get_user(data_user, data_movie, data_bscore, M, test_data_user[i])
         # brn.train(V,1)
         pscore = brn.predict(V, test_data_movie[i], M)
         #pscore = bin_2_score(bscore)
         dscore = bin_2_score(test_data_bscore[i][:])
         RSE += (math.pow((pscore - dscore), 2)) / test_cases
-
-    print 'iteration',iteration,'Atual RSE ===',RSE
+    RSE = np.sqrt(RSE)
+    print 'iteration',iteration,'Actual RSE ===',RSE
     ARSE = RSE
     iteration += 1
-brn.save_weights()
+
