@@ -119,7 +119,7 @@ class SRBM:
                 if np.any(data[i][:]) == 1:
                     for j in range(0,self.F):
                         for k in range(0, self.K):
-                            pos_asso[i][k][j] = data[i][k] * pos_hid_p[j]
+                            pos_asso[i][k][j] = data[i][k] * pos_hid_states[j]
                             neg_asso[i][k][j] = neg_vis_p[i][k]*neg_hid_p[j]
                             #pos_asso[i][k][j] = data[i][k] * pos_hid_states[j]
                             #neg_asso[i][k][j] = neg_vis_states[i][k]*neg_hid_states[j]

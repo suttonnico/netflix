@@ -7,7 +7,8 @@ def generate_test_data(data_user, data_movie, data_bscore, M, test_cases):
     test_data_movie = np.zeros(test_cases)
     test_data_bscore = np.zeros([test_cases, 5])
     for i in range(0, test_cases):
-        ind = np.floor(np.random.rand()*M)
+        ind = np.floor(np.random.rand()*80000)
+        print ind
         test_data_user[i] = data_user[int(ind)]
         test_data_movie[i] = data_movie[int(ind)]
         test_data_bscore[i][:] = data_bscore[int(ind)][:]
@@ -53,7 +54,7 @@ for i in range(0, 80000):
                     data_bscore[i, :] = [0, 0, 0, 0, 1]
 
 
-test_cases = 1000
+test_cases = 100
 M = np.max(data_movie)
 [data_bscore, test_data_bscore, test_data_user, test_data_movie] = generate_test_data(data_user, data_movie, data_bscore, M, test_cases)
 

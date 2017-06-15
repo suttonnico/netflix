@@ -107,7 +107,7 @@ M = np.max(data_movie)      #hay 32 peliculas que nadie califico pero no creo qu
 #cantidad de usuarios
 N = np.max(data_user)
 V = get_user(data_user, data_movie, data_bscore, M, 1)
-test_cases = 1000
+test_cases = 100
 RSE= 0
 for i in range(0,test_cases):
     dscore = bin_2_score(test_data_bscore[i][:])
@@ -119,7 +119,7 @@ print 'RSE for guessing 3 on all movies', RSE
 print 'Number of users', N
 print 'Number of movies', M
 
-brnt = SRBM(M, 5, 50, 0.001)
+brnt = SRBM(M, 5, 50, 0.1)
 
 
 #esto es solo para medir cuanto tarda en entrenar un usuario
@@ -128,7 +128,11 @@ a = time.time()
 brnt.train(V1, 1)
 b = time.time()
 time_train = b-a
-
+test_test_cases =0
+for i in range(0,80000):
+    if bin_2_score(data_bscore[i]) == 0:
+        test_test_cases+=1
+print 'test cases=',test_test_cases
 print 'RSE for first user', brnt.predict_user(V1, M)
 print 'Prediction of movie 1 for user 1', brnt.predict(V1,1,M)
 brn = SRBM(M, 5, 50, 0.1)
